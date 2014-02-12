@@ -1,15 +1,24 @@
 POSIX-FastMktime
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+Drop-in POSIX::mktime() replacement.  This is optimized for repeated
+calls within the same date by caching previous result: if the cache
+applies, it just performs the H:M:S calculation within the same day,
+if not it falls through to POSIX::mktime() and stores the result for
+next invocation.
 
-A README file is required for CPAN modules since CPAN extracts the README
-file from a module distribution so that people browsing the archive
-can use it to get an idea of the module's uses. It is usually a good idea
-to provide version information here so that people can decide whether
-fixes for the module are worth downloading.
+The example use case is parsing a log file with many entries in the
+each day, where you might find mktime() profiling too hot.
+Benchmarking fast_mktime() vs mktime() shows around 2x improvement
+in this isolated case. I also poked at timegm_nocheck() for
+curiosity.  The benchmark runs a million sequential dates, spread
+over a year, through each candidate.
+
+My quadcore 2.67ghz:
+
+Benchmark: timing 5 iterations of FastMktime::fast_mktime, POSIX::mktime, TIME::Local::timegm_nocheck...
+FastMktime::fast_mktime:  6 wallclock secs ( 6.59 usr +  0.02 sys =  6.61 CPU) @  0.76/s (n=5)
+POSIX::mktime: 13 wallclock secs ( 6.79 usr +  6.17 sys = 12.96 CPU) @  0.39/s (n=5)
+TIME::Local::timegm_nocheck: 13 wallclock secs (13.25 usr +  0.00 sys = 13.25 CPU) @  0.38/s (n=5)
 
 
 INSTALLATION
