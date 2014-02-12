@@ -1,0 +1,44 @@
+#!perl -T
+use 5.006;
+use strict;
+use warnings FATAL => 'all';
+use Test::More;
+
+unless ( $ENV{RUN_BENCHMARKS} ) {
+    plan( skip_all => "Author tests not required for installation" );
+}
+
+use Benchmark qw(:all);
+use POSIX qw(mktime);
+use Time::Local;
+
+BEGIN { use_ok( 'POSIX::FastMktime' ); }
+require_ok( 'POSIX::FastMktime' );
+
+my $sstart = time;
+my $sstop  = $sstart + 1e7;
+my @dates;
+
+# Stuff a year of dates into an array.
+for (my $s=$sstart; $s<$sstop; $s++) {
+  push(@dates, [ (gmtime $s)[0..5] ]);
+}
+
+my $tmp;
+my $results = timethese(5, {
+    'POSIX::mktime' 		  => sub { $tmp = POSIX::mktime(@$_)               for @dates },
+    'TIME::Local::timegm_nocheck' => sub { $tmp = Time::Local::timegm_nocheck(@$_) for @dates },
+    'FastMktime::fast_mktime'     => sub { $tmp = FastMktime::fast_mktime(@$_)     for @dates },
+    'FastMktime::fast_mktime'     => sub { $tmp = FastMktime::fast_mktime(@$_)     for @dates },
+});
+
+use Data::Dumper;
+print Dumper( $results );
+
+my $min_tcm = 0.9;
+eval "use Test::CheckManifest $min_tcm";
+plan skip_all => "Test::CheckManifest $min_tcm required" if $@;
+
+ok_manifest();
+
+done_testing();
